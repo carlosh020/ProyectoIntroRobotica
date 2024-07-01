@@ -33,5 +33,6 @@ Para que el robot siga una ruta cuadrada, es necesario ajustar la lógica de mov
 
 1. Agregar Variables de Estado: Necesitamos agregar variables para rastrear el estado actual del robot, como si está en una línea recta, girando o en una esquina.
 2. Actualizar la Lógica de Movimiento: Modificar la lógica del loop para incluir la detección de esquinas y realizar los giros correspondientes.
+
 Nuestra solucion en el codigo utilizado en clase la realizamos obligando al robot a que girase cuando se detecta la linea por el sensor central y uno de algun lado, izquierda o derecha, pero no hemos sido capaces de asegurar su funcionamiento sin fallos. Por eso en este informe se presenta una solucion que deberia funcionar con mas eficiencia.
 
