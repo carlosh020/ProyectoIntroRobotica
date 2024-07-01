@@ -36,3 +36,28 @@ Para que el robot siga una ruta cuadrada, es necesario ajustar la lógica de mov
 
 Nuestra solucion en el codigo utilizado en clase la realizamos obligando al robot a que girase cuando se detecta la linea por el sensor central y uno de algun lado, izquierda o derecha, pero no hemos sido capaces de asegurar su funcionamiento sin fallos. Por eso en este informe se presenta una solucion que deberia funcionar con mas eficiencia.
 
+switch (currentState) {
+    // case FOLLOW_LINE:
+      if (ScBlack && !SiBlack && !SdBlack) {
+        forward(MCqueen1);
+      } else if (SiBlack && !SdBlack) {
+        turnRight(0, MCqueen2);
+      } else if (!SiBlack && SdBlack) {
+        turnLeft(MCqueen1, 0);
+      } else if (SiBlack && SdBlack) {
+        Stop();
+        currentState = TURN_CORNER;
+      }
+      break;
+
+    case TURN_CORNER:
+      // Gira el robot hasta que solo el sensor central detecte la línea
+      if (!ScBlack && (SiBlack || SdBlack)) {
+        turnLeft(MCqueen1, 0);
+      } else if (ScBlack && !SiBlack && !SdBlack) {
+        forward(MCqueen1);
+        currentState = FOLLOW_LINE;
+      }
+      break;
+  }
+
