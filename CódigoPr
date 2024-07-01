@@ -1,0 +1,173 @@
+//Codigo Arduino para seguimiento de linea con sensores reflactantes.
+
+#include <QTRSensors.h>
+
+// Definiciones de pines para los motores
+const int motorPin2 = 2;  // adelante motor 1 input 1
+const int motorPin1 = 5;  // atrás motor 1 input 2
+const int motorPin3 = 9;  // adelante motor 2 input 4
+const int motorPin4 = 8;  // atrás motor 2 input 3
+
+// Pines PWM para controlar la velocidad
+const int speedPinA = 3; // pwm motor 1
+const int speedPinB = 10;  // pwm motor 2
+const int Mcqueen1 = 200; // velocidad (0 a 255 = 0 a 100%)
+const int Mcqueen2 = 200;
+
+QTRSensors qtr;
+
+const uint8_t SensorCount = 6;
+uint16_t sensorValues[SensorCount];
+uint16_t minValues[SensorCount];
+uint16_t maxValues[SensorCount];
+
+const int ledPin = 13;
+ 
+
+// Función para controlar los motores
+void forward(int Mcqueen1) {
+    // Configuración inicial de velocidad de los motores
+  analogWrite(speedPinA, Mcqueen1);
+  analogWrite(speedPinB, Mcqueen1);
+
+  digitalWrite(motorPin1, HIGH);
+  digitalWrite(motorPin2, LOW);
+  digitalWrite(motorPin3, HIGH);
+  digitalWrite(motorPin4, LOW);
+} 
+
+void turnRight(int Mcqueen1,int Mcqueen2){
+    // Configuración inicial de velocidad de los motores
+  analogWrite(speedPinA, Mcqueen1);
+  analogWrite(speedPinB, Mcqueen2);
+
+  digitalWrite(motorPin1, LOW);
+  digitalWrite(motorPin2, HIGH);
+  digitalWrite(motorPin3, HIGH);
+  digitalWrite(motorPin4, LOW);
+}
+void turnLeft(int Mcqueen1,int Mcqueen2){
+    // Configuración inicial de velocidad de los motores
+  analogWrite(speedPinA, Mcqueen1);
+  analogWrite(speedPinB, Mcqueen2);
+  digitalWrite(motorPin1, HIGH);
+  digitalWrite(motorPin2, LOW);
+  digitalWrite(motorPin3, LOW);
+  digitalWrite(motorPin4, HIGH);
+}
+void Stop(){
+  analogWrite(speedPinA, 0);
+  analogWrite(speedPinB, 0);
+  digitalWrite(motorPin1, LOW);
+  digitalWrite(motorPin2, LOW);
+  digitalWrite(motorPin3, LOW);
+  digitalWrite(motorPin4, LOW);
+}
+
+
+void setup() {
+  // Configuración de los pines de los motores como salidas
+  pinMode(motorPin1, OUTPUT);
+  pinMode(motorPin2, OUTPUT);
+  pinMode(motorPin3, OUTPUT);
+  pinMode(motorPin4, OUTPUT);
+
+// configure the sensors
+  qtr.setTypeAnalog();
+  qtr.setSensorPins((const uint8_t[]){A0, A1, A2, A3, A4, A5}, SensorCount);
+  
+
+  delay(500);
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH); // turn on Arduino's LED to indicate we are in calibration mode
+  turnLeft(200,200);
+  // analogRead() takes about 0.1 ms on an AVR.
+  // 0.1 ms per sensor * 4 samples per sensor read (default) * 6 sensors
+  // * 10 reads per calibrate() call = ~24 ms per calibrate() call.
+  // Call calibrate() 400 times to make calibration take about 10 seconds.
+  for (uint16_t i = 0; i < 400; i++) {
+    qtr.calibrate();
+  }
+  Serial.begin(9600);
+  for (uint8_t i = 0; i < SensorCount; i++)
+  {
+    Serial.print(qtr.calibrationOn.minimum[i]);
+    Serial.print(' ');
+  }
+  Serial.println();
+
+  // print the calibration maximum values measured when emitters were on
+  for (uint8_t i = 0; i < SensorCount; i++)
+  {
+    Serial.print(qtr.calibrationOn.maximum[i]);
+    Serial.print(' ');
+  }
+  Serial.println();
+  Serial.println();
+  delay(1000);
+  
+}
+
+// Función loop donde se ejecutará el código principal del robot
+void loop() {
+    // read calibrated sensor values and obtain a measure of the line position
+  // from 0 to 5000 (for a white line, use readLineWhite() instead)
+  qtr.readLineBlack(sensorValues);
+   // La lógica para determinar la posición de la línea se realizara haciendo medias ponderadas con grupos de a 2 sensores
+  int Sc = (sensorValues[2] + sensorValues[3]) / 2; // Sensor Central
+  int Si = (sensorValues[0] + sensorValues[1]) / 2;// Sensor Izquierda 
+  int Sd = (sensorValues[4] + sensorValues[5]) / 2; // Sensor derecha
+
+bool ScBlack;
+bool SiBlack;
+bool SdBlack;
+int Thr = 700; // valor umbral que me indica si esta la linea o no
+
+  //DEFINIMOS LA POSICION DE LA LINEA CON RESPECTO AL ROBOT
+  if (Sc > Thr){
+    ScBlack =1;
+  } else {
+          ScBlack = 0;
+  } 
+
+  if (Si > Thr){
+    SiBlack = 1;
+  } else {
+    SiBlack = 0;
+  }
+
+  if (Sd > Thr){
+    SdBlack = 1;
+  } else {
+    SdBlack = 0;
+  }
+
+
+
+
+  //Logica para el movimiento del robot
+  if (ScBlack) {
+    if (!SiBlack & !SdBlack){
+      forward(Mcqueen1);
+    }
+    else if (SiBlack & !SdBlack){
+      turnRight(0,Mcqueen2);
+    }
+    else if (!SiBlack & SdBlack){
+      turnLeft(Mcqueen1,0);
+    }
+    else if (SiBlack & SdBlack){
+      Stop();
+    }
+  }  else{
+    if (SiBlack & !SdBlack){
+      turnRight(0,Mcqueen2);
+    }
+    else if (!SiBlack & SdBlack){
+      turnLeft(Mcqueen1,0);
+    }
+  else if (!SiBlack & !!SdBlack){
+      Stop();
+    }
+  }
+}
